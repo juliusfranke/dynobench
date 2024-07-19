@@ -5,6 +5,7 @@
 #include "general_utils.hpp"
 #include "math_utils.hpp"
 #include "robot_models.hpp"
+#include <Eigen/src/Core/Matrix.h>
 #include <algorithm>
 #include <boost/serialization/split_member.hpp>
 #include <boost/serialization/string.hpp>
@@ -18,6 +19,8 @@
 #include <random>
 #include <regex>
 #include <type_traits>
+#include <utility>
+#include <vector>
 #include <yaml-cpp/node/node.h>
 
 #include <boost/archive/binary_iarchive.hpp>
@@ -222,6 +225,8 @@ struct Trajectory {
   Eigen::VectorXd goal;
   std::vector<Eigen::VectorXd> states;
   std::vector<Eigen::VectorXd> actions;
+  std::vector<std::vector<Eigen::VectorXd>> primitive_states;
+  std::vector<std::vector<Eigen::VectorXd>> primitive_actions;
   size_t num_time_steps = 0; // use this if we want default init guess.
   Eigen::VectorXd times;
 
