@@ -20,6 +20,7 @@ namespace dynobench {
 
 void Integrator2_3d_res_params::read_from_yaml(YAML::Node &node) {
   set_from_yaml(node, VAR_WITH_NAME(shape));
+  set_from_yaml(node, VAR_WITH_NAME(radius));
   set_from_yaml(node, VAR_WITH_NAME(dt));
   set_from_yaml(node, VAR_WITH_NAME(max_vel));
   set_from_yaml(node, VAR_WITH_NAME(max_acc));
@@ -124,9 +125,10 @@ double Integrator2_3d_res::lower_bound_time_pr(
 double Integrator2_3d_res::distance(const Eigen::Ref<const Eigen::VectorXd> &x,
                                 const Eigen::Ref<const Eigen::VectorXd> &y) {
 
-  assert(distance_weights.size() == 2); 
+  assert(distance_weights.size() == 3); 
   return params.distance_weights(0) * (x.head<3>() - y.head<3>()).norm() +
-         params.distance_weights(1) * (x.segment<3>(3) - y.segment<3>(3)).norm();
+         params.distance_weights(1) * (x.segment<3>(3) - y.segment<3>(3)).norm() + 
+         params.distance_weights(2) * (x.tail<1>() - y.tail<1>()).norm();
 };
 
 void Integrator2_3d_res::calcV(Eigen::Ref<Eigen::VectorXd> v,

@@ -41,8 +41,8 @@ struct Integrator2_3d_res_params {
   double max_f = 0.0981; // Newton
   std::string filename = "";
   std::string shape = "sphere";
-  double radius = 0.05;
-  Eigen::Vector2d distance_weights = Eigen::Vector2d(1, .5);
+  double radius = 0.10;
+  Eigen::Vector3d distance_weights = Eigen::Vector3d(1, .5, .1);
   Eigen::Vector2d size = Eigen::Vector2d(.5, .25);
   Eigen::Vector3d radii = Eigen::Vector3d(.12, .12, .3); // from tro paper
   
