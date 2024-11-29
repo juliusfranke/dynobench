@@ -62,8 +62,8 @@ struct Integrator2_2d_coupled : public Model_robot {
   std::vector<fcl::CollisionObjectd *> part_objs_;  // *
   std::vector<fcl::CollisionObjectd*> robot_objs_; // *
   std::shared_ptr<fcl::BroadPhaseCollisionManagerd> col_mng_robots_;
-  bool finite_diff = true; // true 
-  
+  bool finite_diff = true; // true
+
   Integrator2_2d_coupled(const Integrator2_2d_coupled_params &params = Integrator2_2d_coupled_params(),
                  const Eigen::VectorXd &p_lb = Eigen::VectorXd(),
                  const Eigen::VectorXd &p_ub = Eigen::VectorXd());
@@ -99,7 +99,7 @@ struct Integrator2_2d_coupled : public Model_robot {
   virtual double
   lower_bound_time_pr(const Eigen::Ref<const Eigen::VectorXd> &x,
                       const Eigen::Ref<const Eigen::VectorXd> &y) override;
-                      
+
   virtual void sample_uniform(Eigen::Ref<Eigen::VectorXd> x) override;
   // DYNAMICS
   //

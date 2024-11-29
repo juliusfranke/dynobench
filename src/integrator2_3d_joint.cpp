@@ -53,7 +53,7 @@ Integrator2_3d_joint::Integrator2_3d_joint(const Integrator2_3d_joint_params &pa
                                const Eigen::VectorXd &p_ub)
     : Model_robot(std::make_shared<Rn>(14), 6), params(params) {
 
-  
+
   // description of state and control
   x_desc = {"x1[m]", "y1[m]", "z1[m]", "vx1[m/s]", "vy1[m/s]", "vz1[m/s]", "fz1[N]", "x2[m]", "y2[m]", "z2[m]", "vx2[m/s]", "vy2[m/s]", "vz2[m/s]", "fz2[N]"};
   u_desc = {"ax1[m/s^2]", "ay1[m/s^2]", "az1[m/s^2]","ax2[m/s^2]", "ay2[m/s^2]", "az2[m/s^2]"};
@@ -77,7 +77,7 @@ Integrator2_3d_joint::Integrator2_3d_joint(const Integrator2_3d_joint_params &pa
   x_ub << max__, max__, max__, params.max_vel, params.max_vel, params.max_vel, params.max_f, max__, max__, max__, params.max_vel, params.max_vel, params.max_vel, params.max_f;
 
   u_weight << 1., 1., 1., 1., 1., 1.;
-  x_weightb << 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200; 
+  x_weightb << 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200;
   // add bounds on position if provided
   if (p_lb.size() && p_ub.size()) {
     set_position_lb(p_lb);
@@ -155,9 +155,9 @@ double Integrator2_3d_joint::lower_bound_time_pr(
 double Integrator2_3d_joint::distance(const Eigen::Ref<const Eigen::VectorXd> &x,
                                 const Eigen::Ref<const Eigen::VectorXd> &y) {
 
-  assert(distance_weights.size() == 2); 
+  assert(distance_weights.size() == 2);
   return params.distance_weights(0) * (x.head<3>() - y.head<3>()).norm() +
-        params.distance_weights(1) * (x.segment<3>(3) - y.segment<3>(3)).norm() + 
+        params.distance_weights(1) * (x.segment<3>(3) - y.segment<3>(3)).norm() +
         params.distance_weights(0) * (x.segment<3>(7) - y.segment<3>(7)).norm() +
         params.distance_weights(1) * (x.segment<3>(10) - y.segment<3>(10)).norm();
 };
@@ -169,14 +169,14 @@ void Integrator2_3d_joint::calcV(Eigen::Ref<Eigen::VectorXd> v,
   v(0) = x(3);
   v(1) = x(4);
   v(2) = x(5);
-  v(3) = u(0); 
-  v(4) = u(1); 
+  v(3) = u(0);
+  v(4) = u(1);
   v(5) = u(2) + x(6);
   v(6) = 0; // will be changes with f_res_next
   v(7) = x(10);
   v(8) = x(11);
   v(9) = x(12);
-  v(10) = u(3); 
+  v(10) = u(3);
   v(11) = u(4);
   v(12) = u(5) + x(13);
   v(13) = 0; // will be changes with f_res_next
@@ -196,11 +196,11 @@ void Integrator2_3d_joint::calcV(Eigen::Ref<Eigen::VectorXd> v,
 
   auto dist = x_next_tmp.head<6>() - x_next_tmp.tail<6>(); // only pos, vel
   if(abs(dist(0)) < 0.2 && abs(dist(1)) < 0.2 && abs(dist(2)) < 1.5){
-    float input[6] = {static_cast<float>(dist(0)), 
-                    static_cast<float>(dist(1)), 
-                    static_cast<float>(dist(2)), 
-                    static_cast<float>(dist(3)), 
-                    static_cast<float>(dist(4)), 
+    float input[6] = {static_cast<float>(dist(0)),
+                    static_cast<float>(dist(1)),
+                    static_cast<float>(dist(2)),
+                    static_cast<float>(dist(3)),
+                    static_cast<float>(dist(4)),
                     static_cast<float>(dist(5))};
     nn_reset();
     nn_add_neighbor(input, NN_ROBOT_SMALL);
@@ -211,11 +211,11 @@ void Integrator2_3d_joint::calcV(Eigen::Ref<Eigen::VectorXd> v,
   // second robot
   auto dist2 = x_next_tmp.tail<6>() - x_next_tmp.head<6>(); // only pos, vel
   if(abs(dist2(0)) < 0.2 && abs(dist2(1)) < 0.2 && abs(dist2(2)) < 1.5){
-    float input2[6] = {static_cast<float>(dist2(0)), 
-                    static_cast<float>(dist2(1)), 
-                    static_cast<float>(dist2(2)), 
-                    static_cast<float>(dist2(3)), 
-                    static_cast<float>(dist2(4)), 
+    float input2[6] = {static_cast<float>(dist2(0)),
+                    static_cast<float>(dist2(1)),
+                    static_cast<float>(dist2(2)),
+                    static_cast<float>(dist2(3)),
+                    static_cast<float>(dist2(4)),
                     static_cast<float>(dist2(5))};
     nn_reset();
     nn_add_neighbor(input2, NN_ROBOT_SMALL);
@@ -258,7 +258,7 @@ void Integrator2_3d_joint::transformation_collision_geometries(
     const Eigen::Ref<const Eigen::VectorXd> &x, std::vector<Transform3d> &ts) {
 
   assert(x.size() == 14);
-  assert(ts.size() == 2); 
+  assert(ts.size() == 2);
 
   fcl::Transform3d result;
   fcl::Transform3d result2;

@@ -405,7 +405,7 @@ void Model_robot::collision_distance(const Eigen::Ref<const Eigen::VectorXd> &x,
 
 // for soft constrained collision checking
 void Model_robot::__collision_distance_soft(const Eigen::Ref<const Eigen::VectorXd> &x,
-                                     CollisionOut &cout, 
+                                     CollisionOut &cout,
                                      std::shared_ptr<fcl::BroadPhaseCollisionManagerd> env) {
   return __collision_distance(x, cout, env);
 }
@@ -434,7 +434,7 @@ void Model_robot::collision_distance_diff(
 
 void Model_robot::collision_distance_time_diff(
     Eigen::Ref<Eigen::VectorXd> dd, double &f,
-    const Eigen::Ref<const Eigen::VectorXd> &x, size_t time_index, 
+    const Eigen::Ref<const Eigen::VectorXd> &x, size_t time_index,
     bool hard_constrained_collision) {
   // compute collision at current point
 

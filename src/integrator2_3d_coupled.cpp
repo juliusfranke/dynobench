@@ -53,7 +53,7 @@ Integrator2_3d_coupled::Integrator2_3d_coupled(const Integrator2_3d_coupled_para
                                const Eigen::VectorXd &p_ub)
     : Model_robot(std::make_shared<Rn>(12), 6), params(params) {
 
-  
+
   // description of state and control
   x_desc = {"x1[m]", "y1[m]", "z1[m]", "vx1[m/s]", "vy1[m/s]", "vz1[m/s]", "x2[m]", "y2[m]", "z2[m]", "vx2[m/s]", "vy2[m/s]", "vz2[m/s]"};
   u_desc = {"ax1[m/s^2]", "ay1[m/s^2]", "az1[m/s^2]","ax2[m/s^2]", "ay2[m/s^2]", "az2[m/s^2]"};
@@ -77,7 +77,7 @@ Integrator2_3d_coupled::Integrator2_3d_coupled(const Integrator2_3d_coupled_para
   x_ub << max__, max__, max__, params.max_vel, params.max_vel, params.max_vel, max__, max__, max__, params.max_vel, params.max_vel, params.max_vel;
 
   u_weight << 1., 1., 1., 1., 1., 1.;
-  x_weightb << 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400; 
+  x_weightb << 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400;
   // add bounds on position if provided
   if (p_lb.size() && p_ub.size()) {
     set_position_lb(p_lb);
@@ -156,9 +156,9 @@ double Integrator2_3d_coupled::lower_bound_time_pr(
 double Integrator2_3d_coupled::distance(const Eigen::Ref<const Eigen::VectorXd> &x,
                                 const Eigen::Ref<const Eigen::VectorXd> &y) {
 
-  assert(distance_weights.size() == 2); 
+  assert(distance_weights.size() == 2);
   return params.distance_weights(0) * (x.head<3>() - y.head<3>()).norm() +
-        params.distance_weights(1) * (x.segment<3>(3) - y.segment<3>(3)).norm() + 
+        params.distance_weights(1) * (x.segment<3>(3) - y.segment<3>(3)).norm() +
         params.distance_weights(0) * (x.segment<3>(6) - y.segment<3>(6)).norm() +
         params.distance_weights(1) * (x.tail<3>() - y.tail<3>()).norm();
 };
@@ -175,11 +175,11 @@ void Integrator2_3d_coupled::calcV(Eigen::Ref<Eigen::VectorXd> v,
   // float dist = (p1-p2).norm();
   // a_repulsive = alpha / ( dist * dist) * (p2 - p1) / dist;
   auto dist = x.head<6>() - x.segment<6>(6);
-  float input[6] = {static_cast<float>(dist(0)), 
-                    static_cast<float>(dist(1)), 
-                    static_cast<float>(dist(2)), 
-                    static_cast<float>(dist(3)), 
-                    static_cast<float>(dist(4)), 
+  float input[6] = {static_cast<float>(dist(0)),
+                    static_cast<float>(dist(1)),
+                    static_cast<float>(dist(2)),
+                    static_cast<float>(dist(3)),
+                    static_cast<float>(dist(4)),
                     static_cast<float>(dist(5))};
   if(abs(dist(0)) < 0.2 && abs(dist(1)) < 0.2 && abs(dist(2)) < 1.5){ // only for x, y, z
     std::cout << "running nn to get fa" << std::endl;
@@ -256,7 +256,7 @@ void Integrator2_3d_coupled::transformation_collision_geometries(
     const Eigen::Ref<const Eigen::VectorXd> &x, std::vector<Transform3d> &ts) {
 
   assert(x.size() == 12);
-  assert(ts.size() == 2); 
+  assert(ts.size() == 2);
 
   fcl::Transform3d result;
   fcl::Transform3d result2;

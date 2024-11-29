@@ -37,7 +37,7 @@ struct Integrator2_3d_coupled_params {
   double min_vel = -0.5;
   double max_acc = 2.0;
   double min_acc = -2.0;
-  double min_f = -0.0981; // Newton 
+  double min_f = -0.0981; // Newton
   double max_f = 0;
   std::string filename = "";
   std::string shape = "sphere";
@@ -45,7 +45,7 @@ struct Integrator2_3d_coupled_params {
   Eigen::Vector2d distance_weights = Eigen::Vector2d(1, .5);
   Eigen::Vector2d size = Eigen::Vector2d(.5, .25);
   Eigen::Vector3d radii = Eigen::Vector3d(.12, .12, .3); // from tro paper
-  
+
   void read_from_yaml(const char *file);
   void read_from_yaml(YAML::Node &node);
 
@@ -60,7 +60,7 @@ struct Integrator2_3d_coupled : public Model_robot {
   std::vector<fcl::CollisionObjectd *> part_objs_;  // *
   std::vector<fcl::CollisionObjectd*> robot_objs_; // *
   std::shared_ptr<fcl::BroadPhaseCollisionManagerd> col_mng_robots_;
-  bool finite_diff = true; // true 
+  bool finite_diff = true; // true
 
   Integrator2_3d_coupled(const Integrator2_3d_coupled_params &params = Integrator2_3d_coupled_params(),
                  const Eigen::VectorXd &p_lb = Eigen::VectorXd(),
