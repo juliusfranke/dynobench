@@ -173,14 +173,14 @@ void Joint_robot::calcV(Eigen::Ref<Eigen::VectorXd> v,
     k_u += size_nu;
   }
   // get f_res_dot as (f_res_next - f_res)/ ref_dt. It needs v to be computed already for the NN(x_next)
-  if(residual_force && !conservative){ 
+  if(residual_force && !conservative){
     // get x_next = x + v*dt
     std::vector<Eigen::VectorXd> ind_x; // x
     from_joint_to_ind(x, ind_x);
 
     std::vector<Eigen::VectorXd> ind_v; // x_dot/v, updates
     from_joint_to_ind(v, ind_v);
-    
+
     size_t i = 0;
     k_v = 0, k_x = 0;
     for (auto &robot : v_jointRobot) {
@@ -430,11 +430,11 @@ float Joint_robot::calcFaNext(size_t idx, std::vector<Eigen::VectorXd> &x_all, s
       Eigen::VectorXd x_neighbor_next = x_all.at(j) + v_all.at(j)*dt;
       auto dist = x_next.head<6>() - x_neighbor_next.head<6>(); // only pos, velocity
       if(abs(dist(0)) < 0.2 && abs(dist(1)) < 0.2 && abs(dist(2)) < 1.5){
-        float input[6] = {static_cast<float>(dist(0)), 
-                          static_cast<float>(dist(1)), 
-                          static_cast<float>(dist(2)), 
-                          static_cast<float>(dist(3)), 
-                          static_cast<float>(dist(4)), 
+        float input[6] = {static_cast<float>(dist(0)),
+                          static_cast<float>(dist(1)),
+                          static_cast<float>(dist(2)),
+                          static_cast<float>(dist(3)),
+                          static_cast<float>(dist(4)),
                           static_cast<float>(dist(5))};
         nn_reset();
         nn_add_neighbor(input, NN_ROBOT_SMALL);

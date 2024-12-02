@@ -12,7 +12,7 @@ void from_joint_to_indiv_trajectory_meta(
 
   std::vector<int> nxs = solution_multi_robot.get_nxs(); // set already
   std::vector<int> nus = solution_multi_robot.get_nus();
-  
+
   DYNO_CHECK_EQ(nxs.size(), nus.size(), "");
   DYNO_CHECK_EQ(nxs.size(), times.size(), "");
 

@@ -3,7 +3,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 enum nn_robot_type
 {

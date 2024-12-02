@@ -690,7 +690,7 @@ struct Model_robot {
   std::vector<std::vector<fcl::CollisionObjectd *>> time_varying_obstacles; // this is owing, todo: replace by unique_ptr
   // for soft constrained moving obstacles
   std::vector<std::shared_ptr<fcl::BroadPhaseCollisionManagerd>> time_varying_env_soft;
-  std::vector<std::vector<fcl::CollisionObjectd *>> time_varying_obstacles_soft; 
+  std::vector<std::vector<fcl::CollisionObjectd *>> time_varying_obstacles_soft;
   // TODO: also store the geometry shapes.
 
   virtual void collision_distance(const Eigen::Ref<const Eigen::VectorXd> &x,

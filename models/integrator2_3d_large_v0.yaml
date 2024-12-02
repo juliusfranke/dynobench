@@ -1,0 +1,4 @@
+dynamics: "integrator2_3d"
+shape: "sphere"
+radius: 0.1
+# use default parameters

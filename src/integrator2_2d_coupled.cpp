@@ -65,8 +65,8 @@ Integrator2_2d_coupled::Integrator2_2d_coupled(const Integrator2_2d_coupled_para
   is_2d = true; // 2d robot
   ts_data.resize(2);
   col_outs.resize(2);
-  nx_col = 8; 
-  nx_pr = 8; 
+  nx_col = 8;
+  nx_pr = 8;
   translation_invariance = 2; // 2d robot is translation invariant
 
   distance_weights = params.distance_weights; // necessary for ompl wrapper
@@ -82,9 +82,9 @@ Integrator2_2d_coupled::Integrator2_2d_coupled(const Integrator2_2d_coupled_para
   x_lb << low__, low__, -params.max_vel, -params.max_vel, low__, low__, -params.max_vel, -params.max_vel;
   x_ub << max__, max__, params.max_vel, params.max_vel, max__, max__, params.max_vel, params.max_vel;
 
-  u_weight.resize(4); 
-  u_weight.setConstant(.1); 
-  x_weightb << 100, 100, 100, 100, 100, 100, 100, 100; 
+  u_weight.resize(4);
+  u_weight.setConstant(.1);
+  x_weightb << 100, 100, 100, 100, 100, 100, 100, 100;
 
   // add bounds on position if provided
   if (p_lb.size() && p_ub.size()) {
@@ -98,7 +98,7 @@ Integrator2_2d_coupled::Integrator2_2d_coupled(const Integrator2_2d_coupled_para
             std::make_shared<fcl::Sphered>(params.radius));
     collision_geometries.push_back(
             std::make_shared<fcl::Sphered>(params.radius));
-  } 
+  }
   else {
     ERROR_WITH_INFO("not implemented");
   }
@@ -107,7 +107,7 @@ Integrator2_2d_coupled::Integrator2_2d_coupled(const Integrator2_2d_coupled_para
     auto robot_part = new fcl::CollisionObject(collision_geometries[i]);
     part_objs_.push_back(robot_part);
   }
-  
+
 }
 
 Integrator2_2d_coupled::~Integrator2_2d_coupled()
@@ -164,7 +164,7 @@ double Integrator2_2d_coupled::distance(const Eigen::Ref<const Eigen::VectorXd> 
 
   assert(distance_weights.size() == 2);
   return params.distance_weights(0) * (x.head<2>() - y.head<2>()).norm() +
-         params.distance_weights(1) * (x.segment<2>(2) - y.segment<2>(2)).norm() + 
+         params.distance_weights(1) * (x.segment<2>(2) - y.segment<2>(2)).norm() +
          params.distance_weights(0) * (x.segment<2>(4) - y.segment<2>(4)).norm() +
          params.distance_weights(1) * (x.tail<2>() - y.tail<2>()).norm();
 };
@@ -187,7 +187,7 @@ void Integrator2_2d_coupled::calcV(Eigen::Ref<Eigen::VectorXd> v,
   std::cout << "dist: " << dist << std::endl;
   if(!finite_diff)
     a_repulsive.setZero();
-    
+
   v(0) = x(2);
   v(1) = x(3);
   v(2) = u(0) + a_repulsive(0);
@@ -240,10 +240,10 @@ void Integrator2_2d_coupled::calcDiffV(Eigen::Ref<Eigen::MatrixXd> Jv_x,
     Jv_x(1, 3) = 1;
     Jv_x(4, 6) = 1;
     Jv_x(5, 7) = 1;
-  
+
     Jv_u(2, 0) = 1;
     Jv_u(3, 1) = 1;
-  
+
     Jv_u(6, 2) = 1;
     Jv_u(7, 3) = 1;
 
@@ -269,7 +269,7 @@ void Integrator2_2d_coupled::collision_distance(const Eigen::Ref<const Eigen::Ve
                                      CollisionOut &cout) {
   double min_dist = std::numeric_limits<double>::max();
   bool check_parts = true;
-  // std::vector<fcl::CollisionObjectd *> robot_objs_; 
+  // std::vector<fcl::CollisionObjectd *> robot_objs_;
   // std::shared_ptr<fcl::BroadPhaseCollisionManagerd> col_mng_robots_;
 
   if (env) {
