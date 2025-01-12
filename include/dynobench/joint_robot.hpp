@@ -20,8 +20,13 @@ struct Joint_robot : Model_robot {
 
   std::vector<fcl::CollisionObjectd *> part_objs_;  // *
   std::vector<fcl::CollisionObjectd *> robot_objs_; // *
-  //
-
+  // for the ellipsoid shape - for drones
+  std::vector<fcl::CollisionObjectd *> rf_part_objs_;  // * for the residual force
+  std::vector<fcl::CollisionObjectd *> rf_robot_objs_; // * for the residual force
+  bool residual_force = false; // when residual force is taken into account, and inter-robot collision with ellipsoid shape
+  bool conservative = false; // when no NN for the residual estimation
+  Eigen::Vector3d radii = Eigen::Vector3d(.12, .12, .3); // from tro paper
+  float fa_next;
   std::vector<int> nxs;
 
   std::shared_ptr<fcl::BroadPhaseCollisionManagerd> col_mng_robots_;
@@ -56,8 +61,15 @@ struct Joint_robot : Model_robot {
   lower_bound_time(const Eigen::Ref<const Eigen::VectorXd> &x,
                    const Eigen::Ref<const Eigen::VectorXd> &y) override;
 
-  virtual void collision_distance(const Eigen::Ref<const Eigen::VectorXd> &x,
-                                  CollisionOut &cout) override;
+  virtual void __collision_distance(
+      const Eigen::Ref<const Eigen::VectorXd> &x, CollisionOut &cout,
+      std::shared_ptr<fcl::BroadPhaseCollisionManagerd> env) override;
+
+  // for soft constrained collision checking robot-moving obstacles
+  virtual void __collision_distance_soft(
+      const Eigen::Ref<const Eigen::VectorXd> &x, CollisionOut &cout,
+      std::shared_ptr<fcl::BroadPhaseCollisionManagerd> env) override;
+
 
   virtual void transformation_collision_geometries(
       const Eigen::Ref<const Eigen::VectorXd> &x,
@@ -65,5 +77,8 @@ struct Joint_robot : Model_robot {
 
   std::vector<size_t> so2_indices;
   std::vector<std::shared_ptr<Model_robot>> v_jointRobot;
+
+  float calcFaNext(size_t idx, std::vector<Eigen::VectorXd> &x_all, std::vector<Eigen::VectorXd> &v_all, double dt);
+  void from_joint_to_ind(const Eigen::VectorXd &x, std::vector<Eigen::VectorXd>& y);
 };
 } // namespace dynobench

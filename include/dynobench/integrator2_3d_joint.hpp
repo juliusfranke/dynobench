@@ -23,11 +23,11 @@
 
 namespace dynobench {
 
-struct Integrator2_3d_params {
+struct Integrator2_3d_joint_params {
 
-  Integrator2_3d_params(const char *file) { read_from_yaml(file); };
+  Integrator2_3d_joint_params(const char *file) { read_from_yaml(file); };
 
-  Integrator2_3d_params() = default;
+  Integrator2_3d_joint_params() = default;
 
   // time step for discrete-time dynamics
   double dt = .1;
@@ -37,11 +37,12 @@ struct Integrator2_3d_params {
   double min_vel = -0.5;
   double max_acc = 2.0;
   double min_acc = -2.0;
+  double min_f = -0.0981; // Newton
+  double max_f = 0;
   std::string filename = "";
   std::string shape = "sphere";
-  double radius = 0.1;
+  double radius = 0.05;
   Eigen::Vector2d distance_weights = Eigen::Vector2d(1, .5);
-  Eigen::Vector2d size = Eigen::Vector2d(.5, .25);
   Eigen::Vector3d radii = Eigen::Vector3d(.12, .12, .3); // from tro paper
 
   void read_from_yaml(const char *file);
@@ -50,13 +51,19 @@ struct Integrator2_3d_params {
   void write(std::ostream &out);
 };
 
-struct Integrator2_3d : public Model_robot {
+struct Integrator2_3d_joint : public Model_robot {
 
-  virtual ~Integrator2_3d() = default;
+  virtual ~Integrator2_3d_joint();
 
-  Integrator2_3d_params params;
+  Integrator2_3d_joint_params params;
+  std::vector<fcl::CollisionObjectd *> part_objs_;  // *
+  std::vector<fcl::CollisionObjectd*> robot_objs_; // *
+  std::shared_ptr<fcl::BroadPhaseCollisionManagerd> col_mng_robots_;
+  bool finite_diff = true; // true
+  Eigen::Vector3d f_res_next;
+  Eigen::Vector3d f_res_next2;
 
-  Integrator2_3d(const Integrator2_3d_params &params = Integrator2_3d_params(),
+  Integrator2_3d_joint(const Integrator2_3d_joint_params &params = Integrator2_3d_joint_params(),
                  const Eigen::VectorXd &p_lb = Eigen::VectorXd(),
                  const Eigen::VectorXd &p_ub = Eigen::VectorXd());
 
@@ -64,9 +71,9 @@ struct Integrator2_3d : public Model_robot {
   virtual int number_of_r_dofs() override {return 6;};
   virtual int number_of_so2() override { return 0; }
   virtual void indices_of_so2(int &k, std::vector<size_t> &vect) override {
-    k += 6;
+    k += 12;
    }
-  virtual int number_of_robot() override { return 1; }
+  virtual int number_of_robot() override { return 2; }
   // DISTANCE AND TIME (cost) - BOUNDS
   // Distances and bounds are useuful in search/motion planning algorithms.
 
@@ -112,5 +119,8 @@ struct Integrator2_3d : public Model_robot {
   virtual void transformation_collision_geometries(
       const Eigen::Ref<const Eigen::VectorXd> &x,
       std::vector<Transform3d> &ts) override;
+
+  virtual void collision_distance(const Eigen::Ref<const Eigen::VectorXd> &x,
+                                  CollisionOut &cout) override;
 };
 } // namespace dynobench

@@ -7,6 +7,8 @@ project(
   VERSION 0.1.0
   LANGUAGES CXX)
 
+enable_language(C)
+enable_language(CXX)
 # find_package(pinocchio REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options serialization
                                        stacktrace_basic)
@@ -19,6 +21,10 @@ add_subdirectory(deps/json)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
+
+# Set the C standard to C11
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 set(COMPILE_N56 false)
 if(COMPILE_N56)
@@ -44,15 +50,21 @@ add_library(
   ./src/planar_rotor_pole.cpp
   ./src/car2.cpp
   ./src/integrator2_2d.cpp
+  ./src/integrator2_2d_coupled.cpp
   ./src/joint_robot.cpp
   ./src/integrator1_2d.cpp
   ./src/integrator2_3d.cpp
+  ./src/integrator2_3d_coupled.cpp
+  ./src/integrator2_3d_joint.cpp
+  ./src/integrator2_3d_res.cpp
   ./src/quadrotor_payload.cpp
   ./src/quadrotor_payload_n.cpp
   ./src/quadrotor_payload_n.cpp
   ./src/quadrotor_payload_dynamics_autogen_n2_p.cpp
   ./src/quadrotor_payload_dynamics_autogen_n3_p.cpp
   ./src/quadrotor_payload_dynamics_autogen_n4_p.cpp
+  ./src/multirobot_trajectory.cpp
+  ./src/nn.c
   ${SOURCE_n56})
 
 add_library(dynobench::dynobench ALIAS dynobench)

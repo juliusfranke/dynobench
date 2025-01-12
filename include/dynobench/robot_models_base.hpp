@@ -84,6 +84,7 @@ static double max__ = std::sqrt(std::numeric_limits<double>::max());
 
 struct Obstacle {
   std::string type;
+  std::string octomap_file;
   Eigen::VectorXd size;
   Eigen::VectorXd center;
 };
@@ -382,8 +383,6 @@ struct Model_robot {
   }
 
   virtual void set_position_lb(const Eigen::Ref<const Eigen::VectorXd> &p_lb) {
-    std::cout << p_lb << std::endl;
-    std::cout << "trans " << translation_invariance << std::endl;
     DYNO_CHECK_EQ(static_cast<size_t>(p_lb.size()), translation_invariance, AT);
     x_lb.head(translation_invariance) = p_lb;
   }
@@ -685,10 +684,43 @@ struct Model_robot {
   std::shared_ptr<fcl::BroadPhaseCollisionManagerd> env;
   std::vector<fcl::CollisionObjectd *>
       obstacles; // this is owning, replace by unique_ptr
+
+  std::vector<std::shared_ptr<fcl::BroadPhaseCollisionManagerd>>
+      time_varying_env;
+  std::vector<std::vector<fcl::CollisionObjectd *>> time_varying_obstacles; // this is owing, todo: replace by unique_ptr
+  // for soft constrained moving obstacles
+  std::vector<std::shared_ptr<fcl::BroadPhaseCollisionManagerd>> time_varying_env_soft;
+  std::vector<std::vector<fcl::CollisionObjectd *>> time_varying_obstacles_soft;
   // TODO: also store the geometry shapes.
 
   virtual void collision_distance(const Eigen::Ref<const Eigen::VectorXd> &x,
                                   CollisionOut &cout);
+
+
+  virtual void __collision_distance(
+    const Eigen::Ref<const Eigen::VectorXd> &x, CollisionOut &cout,
+    std::shared_ptr<fcl::BroadPhaseCollisionManagerd> env);
+
+  // soft constrained collision checking for drones
+  virtual void __collision_distance_soft(
+    const Eigen::Ref<const Eigen::VectorXd> &x, CollisionOut &cout,
+    std::shared_ptr<fcl::BroadPhaseCollisionManagerd> env);
+
+  virtual void
+  collision_distance_time(const Eigen::Ref<const Eigen::VectorXd> &x,
+                          size_t time, CollisionOut &cout, bool hard_constrained_collision);
+
+
+
+
+
+  virtual void
+  collision_distance_time_diff(Eigen::Ref<Eigen::VectorXd> dd, double &f,
+                               const Eigen::Ref<const Eigen::VectorXd> &x,
+                               size_t time_index, bool hard_constrained_collision);
+
+
+
 
   // 1: No collision
   // 0: collision

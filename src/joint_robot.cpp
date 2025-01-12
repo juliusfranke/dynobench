@@ -5,6 +5,8 @@
 #include <fcl/geometry/shape/box.h>
 #include <fcl/geometry/shape/sphere.h>
 #include <math.h>
+#include "dynobench/nn.h"
+
 
 namespace dynobench {
 
@@ -133,9 +135,16 @@ Joint_robot::Joint_robot(
     k_xw += size_xw;
   }
   part_objs_.clear();
+  rf_part_objs_.clear();
   for (size_t i = 0; i < collision_geometries.size(); i++) {
     auto robot_part = new fcl::CollisionObject(collision_geometries[i]);
     part_objs_.push_back(robot_part);
+    // when conservative shape for residual
+    if(residual_force && conservative){
+      std::shared_ptr<fcl::Ellipsoidd> ellipsoid = std::make_shared<fcl::Ellipsoidd>(radii);
+      auto rf_robot_part = new fcl::CollisionObjectd(ellipsoid);
+      rf_part_objs_.push_back(rf_robot_part);
+    }
   }
 }
 
@@ -162,6 +171,31 @@ void Joint_robot::calcV(Eigen::Ref<Eigen::VectorXd> v,
     k_v += size_nx;
     k_x += size_nx;
     k_u += size_nu;
+  }
+  // get f_res_dot as (f_res_next - f_res)/ ref_dt. It needs v to be computed already for the NN(x_next)
+  if(residual_force && !conservative){
+    // get x_next = x + v*dt
+    std::vector<Eigen::VectorXd> ind_x; // x
+    from_joint_to_ind(x, ind_x);
+
+    std::vector<Eigen::VectorXd> ind_v; // x_dot/v, updates
+    from_joint_to_ind(v, ind_v);
+
+    size_t i = 0;
+    k_v = 0, k_x = 0;
+    for (auto &robot : v_jointRobot) {
+      size_nx = robot->nx;
+      fa_next = calcFaNext(/*idx*/i, ind_x, ind_v, ref_dt); // only last element needs to be updated with NN
+      // update the last element of v
+      Eigen::VectorXd segment = v.segment(k_v, size_nx);
+      float fa = x.segment(k_x, size_nx)(size_nx - 1); // last element of the state - f
+      segment(segment.size() - 1) = (fa_next - fa) / ref_dt;
+      std::cout << segment.format(dynobench::FMT) << std::endl;
+      v.segment(k_v, size_nx) = segment; // update the x_dot to return
+      k_v += size_nx;
+      k_x += size_nx;
+      ++i; // keep track of robots
+    }
   }
 }
 
@@ -253,11 +287,12 @@ void Joint_robot::transformation_collision_geometries(
   ts = tmp;
 }
 
-void Joint_robot::collision_distance(const Eigen::Ref<const Eigen::VectorXd> &x,
-                                     CollisionOut &cout) {
+void Joint_robot::__collision_distance(
+    const Eigen::Ref<const Eigen::VectorXd> &x, CollisionOut &cout,
+    std::shared_ptr<fcl::BroadPhaseCollisionManagerd> _env) {
   double min_dist = std::numeric_limits<double>::max();
   bool check_parts = true;
-  if (env) {
+  if (_env) {
     transformation_collision_geometries(x, ts_data);
     DYNO_CHECK_EQ(collision_geometries.size(), ts_data.size(), AT);
     assert(collision_geometries.size() == ts_data.size());
@@ -265,6 +300,7 @@ void Joint_robot::collision_distance(const Eigen::Ref<const Eigen::VectorXd> &x,
     assert(collision_geometries.size() == col_outs.size());
     robot_objs_.clear();
     col_mng_robots_->clear();
+    rf_robot_objs_.clear();
     for (size_t i = 0; i < ts_data.size(); i++) {
       fcl::Transform3d &transform = ts_data[i];
       auto robot_co = part_objs_[i];
@@ -278,13 +314,27 @@ void Joint_robot::collision_distance(const Eigen::Ref<const Eigen::VectorXd> &x,
       auto robot_co = robot_objs_[i];
       fcl::DefaultDistanceData<double> distance_data;
       distance_data.request.enable_signed_distance = true;
-      env->distance(robot_co, &distance_data,
-                    fcl::DefaultDistanceFunction<double>);
+      _env->distance(robot_co, &distance_data,
+                     fcl::DefaultDistanceFunction<double>);
+      // if(distance_data.result.min_distance < 0)
+        // std::cout << "collision with the env, robot " << i << std::endl;
       min_dist = std::min(min_dist, distance_data.result.min_distance);
     }
 
     if (check_parts) {
-      col_mng_robots_->registerObjects(robot_objs_);
+      if(residual_force && conservative){
+        for (size_t i = 0; i < ts_data.size(); i++) {
+          fcl::Transform3d &transform = ts_data[i];
+          auto rf_robot_co = rf_part_objs_[i];
+          rf_robot_co->setTranslation(transform.translation());
+          rf_robot_co->setRotation(transform.rotation());
+          rf_robot_co->computeAABB();
+          rf_robot_objs_.push_back(rf_robot_co);
+        }
+        col_mng_robots_->registerObjects(rf_robot_objs_);
+      }
+      else
+        col_mng_robots_->registerObjects(robot_objs_);
       fcl::DefaultDistanceData<double> inter_robot_distance_data;
       inter_robot_distance_data.request.enable_signed_distance = true;
 
@@ -295,7 +345,116 @@ void Joint_robot::collision_distance(const Eigen::Ref<const Eigen::VectorXd> &x,
     }
     cout.distance = min_dist;
   } else {
+    std::cout << "no _env in collision_distance, max" << std::endl;
     cout.distance = max__;
+  }
+}
+// need ellipsoid shape for this robot-moving obstacles collision checking
+void Joint_robot::__collision_distance_soft(
+    const Eigen::Ref<const Eigen::VectorXd> &x, CollisionOut &cout,
+    std::shared_ptr<fcl::BroadPhaseCollisionManagerd> _env) {
+  double min_dist = std::numeric_limits<double>::max();
+  bool check_parts = true;
+  if (_env) {
+    transformation_collision_geometries(x, ts_data);
+    DYNO_CHECK_EQ(collision_geometries.size(), ts_data.size(), AT);
+    assert(collision_geometries.size() == ts_data.size());
+    DYNO_CHECK_EQ(collision_geometries.size(), col_outs.size(), AT);
+    assert(collision_geometries.size() == col_outs.size());
+    robot_objs_.clear();
+    col_mng_robots_->clear();
+    rf_robot_objs_.clear();
+    if(residual_force && conservative){
+      for (size_t i = 0; i < ts_data.size(); i++) {
+        fcl::Transform3d &transform = ts_data[i];
+        auto robot_co = rf_part_objs_[i];
+        robot_co->setTranslation(transform.translation());
+        robot_co->setRotation(transform.rotation());
+        robot_co->computeAABB();
+        rf_robot_objs_.push_back(robot_co);
+      }
+      // part/environment checking also with ellipsoid shape
+      for (size_t i = 0; i < ts_data.size(); i++) {
+        auto robot_co = rf_robot_objs_[i];
+        fcl::DefaultDistanceData<double> distance_data;
+        distance_data.request.enable_signed_distance = true;
+        _env->distance(robot_co, &distance_data,
+                      fcl::DefaultDistanceFunction<double>);
+        min_dist = std::min(min_dist, distance_data.result.min_distance);
+      }
+    }
+    else {
+      for (size_t i = 0; i < ts_data.size(); i++) {
+        fcl::Transform3d &transform = ts_data[i];
+        auto robot_co = part_objs_[i];
+        robot_co->setTranslation(transform.translation());
+        robot_co->setRotation(transform.rotation());
+        robot_co->computeAABB();
+        robot_objs_.push_back(robot_co);
+      }
+      // part/environment checking also with ellipsoid shape
+      for (size_t i = 0; i < ts_data.size(); i++) {
+        auto robot_co = robot_objs_[i];
+        fcl::DefaultDistanceData<double> distance_data;
+        distance_data.request.enable_signed_distance = true;
+        _env->distance(robot_co, &distance_data,
+                      fcl::DefaultDistanceFunction<double>);
+        min_dist = std::min(min_dist, distance_data.result.min_distance);
+      }
+    }
+    if (check_parts) {
+      if(residual_force && conservative)
+        col_mng_robots_->registerObjects(rf_robot_objs_);
+      else
+        col_mng_robots_->registerObjects(robot_objs_);
+      fcl::DefaultDistanceData<double> inter_robot_distance_data;
+      inter_robot_distance_data.request.enable_signed_distance = true;
+
+      col_mng_robots_->distance(&inter_robot_distance_data,
+                                fcl::DefaultDistanceFunction<double>);
+      min_dist =
+          std::min(min_dist, inter_robot_distance_data.result.min_distance);
+    }
+    cout.distance = min_dist;
+  } else {
+    std::cout << "no _env in collision_distance, max" << std::endl;
+    cout.distance = max__;
+  }
+}
+// for the residuals. It assumes integrator2_3d with (x,y,z,vx,vy,vz)
+float Joint_robot::calcFaNext(size_t idx, std::vector<Eigen::VectorXd> &x_all, std::vector<Eigen::VectorXd> &v_all, double dt){
+  float rho = 0;
+  Eigen::VectorXd x_next = x_all.at(idx) + v_all.at(idx)*dt;
+  for(size_t j = 0; j < x_all.size(); j++){
+    if(j != idx){ // all neighbors, except the robot itself
+      Eigen::VectorXd x_neighbor_next = x_all.at(j) + v_all.at(j)*dt;
+      auto dist = x_next.head<6>() - x_neighbor_next.head<6>(); // only pos, velocity
+      if(abs(dist(0)) < 0.2 && abs(dist(1)) < 0.2 && abs(dist(2)) < 1.5){
+        float input[6] = {static_cast<float>(dist(0)),
+                          static_cast<float>(dist(1)),
+                          static_cast<float>(dist(2)),
+                          static_cast<float>(dist(3)),
+                          static_cast<float>(dist(4)),
+                          static_cast<float>(dist(5))};
+        nn_reset();
+        nn_add_neighbor(input, NN_ROBOT_SMALL);
+        const float* rhoOutput = nn_eval(NN_ROBOT_SMALL); // in gramms
+        rho += rhoOutput[0] / 1000 * 9.81; // in Newtons
+      }
+    }
+  }
+  return rho;
+}
+// get each robot's state separately and saves in y
+void Joint_robot::from_joint_to_ind(const Eigen::VectorXd &x,
+                                    std::vector<Eigen::VectorXd>& y) {
+  size_t size_nx;
+  int k_x = 0;
+  for (auto &robot : v_jointRobot) {
+    size_nx = robot->nx;
+    Eigen::VectorXd chunk = x.segment(k_x, size_nx);
+    y.push_back(chunk);
+    k_x += size_nx;
   }
 }
 }; // namespace dynobench
